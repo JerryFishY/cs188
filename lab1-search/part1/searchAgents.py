@@ -384,7 +384,22 @@ def cornersHeuristic(state, problem):
     h_sum = 0
 
     "*** YOUR CODE HERE ***"
-    return h_sum # Default to trivial solution
+    import itertools
+    cornertovisit = list(set(corners) - set(Visited_Corners))
+    flag = 1
+    for order in itertools.permutations(cornertovisit):
+        distance = 0
+        node = state[0]
+        for corner in order:
+            distance += util.manhattanDistance(corner, node)
+            node = corner
+        if flag == 1:
+            h_sum = distance
+            flag = 0
+        else:
+            h_sum = min(h_sum, distance)
+    return  h_sum
+# Default to trivial solution
 
 
 class AStarCornersAgent(SearchAgent):
