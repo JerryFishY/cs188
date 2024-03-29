@@ -138,23 +138,42 @@ class MinimaxAgent(MultiAgentSearchAgent):
             # condition for termination of recursive method calls
             def terminal_condition(state,depth):
                 "*** YOUR CODE HERE ***"
+                return depth == 0 or state.isWin() or state.isLose()
             if terminal_condition(state,depth) == True:
                 return (self.evaluationFunction(state), None)
             # initialize value
-            value = "*** YOUR CODE HERE ***"
+            assert index_of_agent == 0
+            value = -float('inf')
             # for every legal action, update value and maxiAction
             "*** YOUR CODE HERE ***"
+            actions = state.getLegalActions(index_of_agent)
+            for action in actions:
+                successor = state.generateSuccessor(index_of_agent, action)
+                successor_value = minimizer(successor, depth, index_of_agent+1)[0]
+                if successor_value > value:
+                    value = successor_value
+                    maxiAction = action
             return (value, maxiAction)
         def minimizer(state, depth, index_of_agent):
             miniAction = None
             def terminal_condition(state,depth):
-                "*** YOUR CODE HERE ***"
+                return depth == 0 or state.isWin() or state.isLose()
             if terminal_condition(state,depth) == True:
                 return (self.evaluationFunction(state), miniAction)
             # initialize value
-            value = "*** YOUR CODE HERE ***"
+            value = float('inf')
             # for every legal action, update value and miniAction
             "*** YOUR CODE HERE ***"
+            actions = state.getLegalActions(index_of_agent)
+            for action in actions:
+                successor = state.generateSuccessor(index_of_agent, action)
+                if index_of_agent == state.getNumAgents()-1:
+                    successor_value = maximizer(successor, depth-1, 0)[0]
+                else:
+                    successor_value = minimizer(successor, depth, index_of_agent+1)[0]
+                if successor_value < value:
+                    value = successor_value
+                    miniAction = action
             return (value, miniAction)      
         action = maximizer(gameState, self.depth, 0)[1]
         return action 
@@ -171,29 +190,52 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             maxiAction = None
             #condition for termination of recursive method calls
             def terminal_condition(state,depth):
-                "*** YOUR CODE HERE ***"
+                return depth == 0 or state.isWin() or state.isLose()
             if terminal_condition(state,depth) == True:
                 return (self.evaluationFunction(state), None)
             # initialize value
-            value = "*** YOUR CODE HERE ***"
+            value = -float('inf')
             # for every legal action, update value, maxiAction and alpha:
             "*** YOUR CODE HERE ***"
+            actions = state.getLegalActions(index_of_agent)
+            for action in actions:
+                successor = state.generateSuccessor(index_of_agent, action)
+                successor_value = minimizer(successor, depth, index_of_agent+1, alpha, beta)[0]
+                if successor_value > value:
+                    value = successor_value
+                    maxiAction = action
+                if value > beta:
+                    return (value, maxiAction)
+                alpha = max(alpha, value)
             return (value, maxiAction)
         
         def minimizer(state, depth, index_of_agent, alpha, beta):
             miniAction = None
             def terminal_condition(state,depth):
-                "*** YOUR CODE HERE ***"
+                return depth == 0 or state.isWin() or state.isLose()
             if terminal_condition(state,depth) == True:
                 return (self.evaluationFunction(state), miniAction)
             # initialize value
-            value = "*** YOUR CODE HERE ***"
+            value = float('inf')
             # for every legal action, update value, miniAction and beta
             "*** YOUR CODE HERE ***"
+            actions = state.getLegalActions(index_of_agent)
+            for action in actions:
+                successor = state.generateSuccessor(index_of_agent, action)
+                if index_of_agent == state.getNumAgents()-1:
+                    successor_value = maximizer(successor, depth-1, 0, alpha, beta)[0]
+                else:
+                    successor_value = minimizer(successor, depth, index_of_agent+1, alpha, beta)[0]
+                if successor_value < value:
+                    value = successor_value
+                    miniAction = action
+                if value < alpha:
+                    return (value, miniAction)
+                beta = min(beta, value)
             return (value, miniAction) 
         # initialize alpha/beta
-        alpha =  "*** YOUR CODE HERE ***"
-        beta = "*** YOUR CODE HERE ***"
+        alpha = -float('inf')
+        beta = float('inf')
         action = maximizer(gameState, self.depth, 0, alpha, beta)[1]
         return action 
 
@@ -226,7 +268,37 @@ class MCTSAgent(MultiAgentSearchAgent):
                 3. You should use best_UCT() to find the best child of a node each time.
 
             '''
-        
+            while True:
+                if cgstree.north is None and cgstree.east is None and cgstree.west is None and cgstree.south is None and cgstree.stop is None:
+                    # The empty node
+                    return (cgs, cgstree)
+                child_ls = []
+                for action in cgs.getLegalActions(0):
+                    if action == 'North':
+                        child_ls.append((cgstree.north, action))
+                    elif action == 'South':
+                        child_ls.append((cgstree.south, action))
+                    elif action == 'East':
+                        child_ls.append((cgstree.east, action))
+                    elif action == 'West':
+                        child_ls.append((cgstree.west, action))
+                if child_ls == [] and cgstree.stop is not None:
+                        cgs = cgstree.stop.statevalue
+                        cgstree = cgstree.stop
+                        continue
+                else:
+                    action = best_UCT(child_ls, random_prob=0.0)[1]
+                    if action == 'North':
+                        cgstree = cgstree.north
+                    elif action == 'South':
+                        cgstree = cgstree.south
+                    elif action == 'East':
+                        cgstree = cgstree.east
+                    elif action == 'West':
+                        cgstree = cgstree.west
+                    elif action == 'Stop':
+                        cgstree = cgstree.stop
+                    cgs = cgstree.statevalue
             return (cgs, cgstree)
 
         def Expansion(cgstree):
@@ -237,6 +309,23 @@ class MCTSAgent(MultiAgentSearchAgent):
                 2. You should use Node() to create a new node for each child.
                 3. You can traverse the legal_actions to find all the children of the current game state tree node.
             '''
+            for action in legal_actions:
+                successor = cgstree.statevalue.generateSuccessor(0, action)
+                if action == 'North':
+                    cgstree.north = Node([successor, 0, 1])
+                    cgstree.north.parent = cgstree
+                elif action == 'East':
+                    cgstree.east = Node([successor, 0, 1])
+                    cgstree.east.parent = cgstree
+                elif action == 'West':
+                    cgstree.west = Node([successor, 0, 1])
+                    cgstree.west.parent = cgstree
+                elif action == 'South':
+                    cgstree.south = Node([successor, 0, 1])
+                    cgstree.south.parent = cgstree
+                elif action == 'Stop':
+                    cgstree.stop = Node([successor, 0, 1])
+                    cgstree.stop.parent = cgstree
 
         def Simulation(cgs, cgstree):
             '''
@@ -252,7 +341,10 @@ class MCTSAgent(MultiAgentSearchAgent):
                 YOUR CORE HERE (~4 lines)
                 You should modify the simulation_score of the current game state.
             '''
-            
+            if cgstree.statevalue.isWin():
+                simulation_score = 1
+            elif cgstree.statevalue.isLose():
+                simulation_score = 0
             return simulation_score, cgstree
 
         def Backpropagation(cgstree, simulation_score):
@@ -261,7 +353,9 @@ class MCTSAgent(MultiAgentSearchAgent):
                     YOUR CORE HERE (~3 lines)
                     You should recursively update the numerator and denominator of the game states until you reaches the root of the tree.
                 '''
-                ...
+                cgstree.numerator += simulation_score
+                cgstree.denominator += 1
+                cgstree = cgstree.parent
             return cgstree
 
         # 根据UCT算法选择最好的子节点及其对应的action。你不需要修改这个函数。
@@ -381,7 +475,7 @@ class MCTSAgent(MultiAgentSearchAgent):
             YOUR CODE HERE (~1-2 line)
             initialize root node cgstree (class Node)
         '''
-        cgstree = None
+        cgstree = Node([gameState, 0, 1])
 
         for _ in range(mcts_time_limit):
             gameState, cgstree = Selection(gameState, cgstree)                  # 根据当前的游戏状态和搜索树，选择一个最好的子节点
